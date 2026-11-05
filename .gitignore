@@ -297,3 +297,9 @@ skills-lock.json
 /scratch/
 /.scratch/
 
+# OmniGet Android app
+/android/.gradle/
+/android/local.properties
+/android/**/build/
+!/android/README.md
+
