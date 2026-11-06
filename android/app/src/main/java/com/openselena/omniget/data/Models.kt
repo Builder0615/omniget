@@ -1,5 +1,7 @@
 package com.openselena.omniget.data
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -139,7 +141,22 @@ data class MediaPreview(
     val durationSeconds: Int,
     val fileSizeApprox: Long,
     val availableHeights: List<Int>,
+    val playbackVariants: List<PlaybackVariant> = emptyList(),
 )
+
+@Parcelize
+data class PlaybackStream(
+    val url: String,
+    val mimeType: String?,
+    val headers: Map<String, String> = emptyMap(),
+) : Parcelable
+
+@Parcelize
+data class PlaybackVariant(
+    val height: Int,
+    val video: PlaybackStream,
+    val audio: PlaybackStream? = null,
+) : Parcelable
 
 data class ParsedProgress(
     val percent: Float,

@@ -32,6 +32,8 @@ class PlatformDetectorTest {
     fun detect_recognizesKnownDomainsAndSubdomains() {
         assertEquals("youtube", PlatformDetector.detect("https://m.youtube.com/watch?v=1").id)
         assertEquals("bilibili", PlatformDetector.detect("b23.tv/abc").id)
+        assertEquals("xiaohongshu", PlatformDetector.detect("https://xhslink.cn/o/abc").id)
+        assertEquals("xiaohongshu", PlatformDetector.detect("https://xhslink.com/a/abc").id)
     }
 
     @Test

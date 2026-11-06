@@ -27,7 +27,7 @@ object PlatformDetector {
         KnownPlatform(PlatformInfo("vimeo", "Vimeo", 0xFF1AB7EA), listOf("vimeo.com")),
         KnownPlatform(PlatformInfo("telegram", "Telegram", 0xFF2AABEE), listOf("t.me", "telegram.me", "telegram.org")),
         KnownPlatform(PlatformInfo("douyin", "抖音", 0xFFFE2C55), listOf("douyin.com", "iesdouyin.com", "amemv.com")),
-        KnownPlatform(PlatformInfo("xiaohongshu", "小红书", 0xFFFF2442), listOf("xiaohongshu.com", "xhslink.com")),
+        KnownPlatform(PlatformInfo("xiaohongshu", "小红书", 0xFFFF2442), listOf("xiaohongshu.com", "xhslink.com", "xhslink.cn")),
         KnownPlatform(PlatformInfo("kuaishou", "快手", 0xFFFF5000), listOf("kuaishou.com")),
         KnownPlatform(PlatformInfo("youku", "优酷", 0xFF1E90FF), listOf("youku.com")),
         KnownPlatform(PlatformInfo("iqiyi", "爱奇艺", 0xFF00BE06), listOf("iqiyi.com")),

@@ -1,27 +1,54 @@
-# OmniGet for Android
+# 小黑下载 for Android
 
-This directory contains a native Android client for OmniGet's media download
-workflow. It uses the same local-first model as the desktop app: links are
-resolved and downloaded on the device, with no OmniGet resolver backend.
+小黑下载 is a native Android client built from OmniGet's media download
+workflow. Links are resolved and downloaded on the device, with no remote
+resolver backend.
 
 ## Features
 
 - Paste, share, or open an `http`/`https` media link.
 - Preview title, uploader, thumbnail, duration, and available video heights.
 - Download video or extract audio with bundled yt-dlp and FFmpeg.
-- Select quality, import a Netscape-format cookie file, and optionally allow
-  playlist downloads and subtitles.
+- Select video/audio mode and quality in the bottom sheet opened by Download.
+- Import a Netscape-format cookie file, and optionally allow playlist
+  downloads and subtitles.
 - Queue downloads in a foreground service with progress notifications and
   pause, resume, retry, cancel, open, and share actions.
 - Persist queue state across app restarts.
 - Save completed files to `Downloads/OmniGet` on Android 10 and newer. Android
   8 and 9 use app-private external storage with a `FileProvider`.
-- Follow the desktop visual language with the orange OmniGet accent, rounded
-  surfaces, mascot artwork, light/dark themes, and responsive navigation.
+- Keep Home focused on the black cat and link input; show the media player
+  after successful parsing and keep download history on Downloads.
+- Use warm paper surfaces, recessed inputs, terracotta accents, light/dark
+  themes, responsive navigation, and motion for interactive controls.
 
 The desktop plugin marketplace, browser extension bridge, account and
 cloud-sync features, and non-download desktop workflows are not part of this
 Android client.
+
+## Visual Design and Artwork
+
+The paper palette and raised/recessed surface treatment are inspired by
+[letterpress-companion](https://github.com/tianyupaipai-cmd/letterpress-companion).
+The Android interface is implemented independently with Jetpack Compose;
+no source code or artwork from that project is copied into this client.
+
+The black cat has separate Lottie states for idle, analyzing, completed, and
+error. These animations combine generated image illustrations with animated
+transforms and vector effects; the character's limbs are not individually
+rigged. The app respects the system's disabled-animation setting.
+
+Artwork is stored in `app/src/main/res/drawable-nodpi/xiaohei_icon.png` and
+`app/src/main/assets/pet/images/`. Lottie compositions are stored in
+`app/src/main/assets/pet/`. See [ARTWORK.md](ARTWORK.md) for provenance,
+generation prompts, and asset details.
+
+After changing the source illustrations or animation specification, regenerate
+the compositions from the repository root:
+
+```bash
+node android/tools/generate-pet-animations.mjs
+```
 
 ## Project Layout
 
@@ -32,6 +59,8 @@ Android client.
 | `app/src/main/java/com/openselena/omniget/data/` | Settings and persisted download queue |
 | `app/src/main/java/com/openselena/omniget/util/` | URL detection and progress parsing |
 | `app/src/test/` | JVM unit tests |
+| `app/src/main/assets/pet/` | Black-cat illustrations and Lottie state compositions |
+| `tools/generate-pet-animations.mjs` | Reproducible Lottie composition generation and asset checks |
 | `tools/build-webp-16k.sh` | Reproducible WebP compatibility build |
 
 ## Build

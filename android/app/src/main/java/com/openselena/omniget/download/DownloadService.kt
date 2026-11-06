@@ -164,6 +164,13 @@ class DownloadService : Service() {
 
             val totalBytes = rawFiles.sumOf(File::length)
             downloads.updateProgress(task.id, 100f, 0L, 0L, totalBytes, totalBytes, "")
+            if (current.thumbnailUrl.isNullOrBlank() && task.mode == com.openselena.omniget.data.DownloadMode.VIDEO) {
+                MediaThumbnails.fromLocalFile(
+                    context = applicationContext,
+                    file = rawFiles.first(),
+                    key = "task-${task.id}",
+                )?.let { downloads.updateThumbnail(task.id, it) }
+            }
             val delivered = FileDelivery.deliverAll(applicationContext, rawFiles)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && delivered.allPublished) {
                 FileDelivery.deleteStagingFiles(applicationContext, task.id)

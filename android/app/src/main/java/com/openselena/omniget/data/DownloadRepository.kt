@@ -77,6 +77,10 @@ class DownloadRepository(context: Context) {
         )
     }
 
+    fun updateThumbnail(id: String, thumbnailUrl: String?) = change(id, persist = false) {
+        it.copy(thumbnailUrl = thumbnailUrl ?: it.thumbnailUrl)
+    }
+
     fun markFailed(id: String, message: String) = change(id) {
         it.copy(
             status = DownloadStatus.FAILED,

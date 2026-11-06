@@ -1,52 +1,60 @@
 package com.openselena.omniget.ui.screens
 
-import android.content.ClipboardManager
-import android.content.Context
-import androidx.compose.animation.Crossfade
+import android.content.res.Configuration
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ContentPaste
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,15 +62,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,353 +75,154 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.openselena.omniget.R
 import com.openselena.omniget.data.DownloadMode
-import com.openselena.omniget.data.DownloadStatus
-import com.openselena.omniget.data.DownloadTask
+import com.openselena.omniget.data.MediaPreview
 import com.openselena.omniget.data.QualityPreset
-import com.openselena.omniget.ui.components.BrandMark
+import com.openselena.omniget.ui.components.AppIcon
+import com.openselena.omniget.ui.components.EmbeddedPlayer
 import com.openselena.omniget.ui.components.ModeSegmented
 import com.openselena.omniget.ui.components.OmniCard
+import com.openselena.omniget.ui.components.PetMascot
+import com.openselena.omniget.ui.components.PetState
+import com.openselena.omniget.ui.components.PaperButton
+import com.openselena.omniget.ui.components.PaperIconButton
 import com.openselena.omniget.ui.components.PlatformBadge
-import com.openselena.omniget.ui.components.RecentTaskRow
-import com.openselena.omniget.ui.components.SectionHeader
+import com.openselena.omniget.ui.components.SvgIcon
 import com.openselena.omniget.ui.components.qualityLabel
-import com.openselena.omniget.ui.theme.OmniColors
+import com.openselena.omniget.ui.components.paperWell
 import com.openselena.omniget.ui.vm.HomeEvent
 import com.openselena.omniget.ui.vm.HomeUiState
 import com.openselena.omniget.ui.vm.HomeViewModel
 import com.openselena.omniget.util.Formatters
 import com.openselena.omniget.util.PlatformDetector
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    tasks: List<DownloadTask>,
     snackbarHostState: SnackbarHostState,
-    onOpenDownloads: () -> Unit,
     modifier: Modifier = Modifier,
-    showBranding: Boolean = true,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val preview = state.preview
-    val error = state.error
-    val context = LocalContext.current
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val focusManager = LocalFocusManager.current
-    val clipboardEmptyText = stringResource(R.string.paste_empty)
     val addedText = stringResource(R.string.download_added)
+    val preview = state.preview
+    var showDownloadOptions by rememberSaveable(preview?.url) { mutableStateOf(false) }
+    val petState = when {
+        state.isAnalyzing -> PetState.ANALYZING
+        preview != null -> PetState.COMPLETE
+        state.error != null -> PetState.ERROR
+        else -> PetState.IDLE
+    }
+    val analyze = {
+        focusManager.clearFocus()
+        viewModel.analyze()
+    }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(viewModel, addedText) {
         viewModel.events.collect { event ->
-            val message = when (event) {
-                HomeEvent.AddedToQueue -> addedText
-                HomeEvent.ClipboardEmpty -> clipboardEmptyText
-                is HomeEvent.Message -> event.text
+            when (event) {
+                HomeEvent.AddedToQueue -> snackbarHostState.showSnackbar(addedText)
             }
-            snackbarHostState.showSnackbar(message)
         }
     }
 
-    val mascot = when {
-        tasks.any { it.status == DownloadStatus.DOWNLOADING } -> R.drawable.mascot_downloading
-        tasks.any { it.status == DownloadStatus.FAILED } -> R.drawable.mascot_error
-        tasks.any { it.status == DownloadStatus.COMPLETED } -> R.drawable.mascot_complete
-        else -> R.drawable.mascot_idle
-    }
-
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = 820.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            if (showBranding) item {
-                HomeHeader(
-                    activeCount = tasks.count {
-                        it.status == DownloadStatus.DOWNLOADING || it.status == DownloadStatus.QUEUED
-                    },
-                    onOpenDownloads = onOpenDownloads,
-                )
-            }
-
-            item {
+    Box(
+        modifier = modifier.fillMaxSize().imePadding(),
+        contentAlignment = Alignment.Center,
+    ) {
+        AnimatedContent(
+            targetState = preview,
+            contentKey = { it?.url },
+            transitionSpec = {
+                (fadeIn(tween(240)) + slideInVertically(tween(300)) { it / 32 }) togetherWith fadeOut(tween(140))
+            },
+            contentAlignment = Alignment.Center,
+            label = "parsed-result",
+        ) { shownPreview ->
+        if (shownPreview != null && landscape) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = 1120.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(0.9f).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    HomePet(petState, Modifier.fillMaxWidth().height(140.dp))
+                    Omnibox(state, viewModel::onUrlChanged, analyze)
+                }
+                Column(
+                    modifier = Modifier.weight(1.1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    PreviewCard(shownPreview, onDownload = { showDownloadOptions = true })
+                }
+            }
+        } else if (shownPreview != null) {
+            Box(
+                Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                LazyColumn(
+                    modifier = Modifier.widthIn(max = 600.dp).fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Crossfade(targetState = mascot, label = "mascot") { image ->
-                        androidx.compose.foundation.Image(
-                            painter = painterResource(image),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(132.dp)
-                                .padding(4.dp),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.home_eyebrow),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.1.sp,
-                    )
-                    Spacer(Modifier.height(7.dp))
-                    Text(
-                        text = stringResource(R.string.home_title),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.home_subtitle),
-                        modifier = Modifier.widthIn(max = 580.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
+                    item { HomePet(petState, Modifier.fillMaxWidth().height(116.dp)) }
+                    item { Omnibox(state, viewModel::onUrlChanged, analyze) }
+                    item { PreviewCard(shownPreview, onDownload = { showDownloadOptions = true }) }
                 }
             }
-
-            item {
-                Omnibox(
-                    state = state,
-                    onValueChange = viewModel::onUrlChanged,
-                    onAnalyze = {
-                        focusManager.clearFocus()
-                        viewModel.analyze()
-                    },
-                    onPaste = {
-                        val clipboard = context.getSystemService(ClipboardManager::class.java)
-                        val pasted = clipboard?.primaryClip
-                            ?.takeIf { it.itemCount > 0 }
-                            ?.getItemAt(0)
-                            ?.coerceToText(context)
-                            ?.toString()
-                            ?.trim()
-                            .orEmpty()
-                        if (pasted.isBlank()) {
-                            viewModel.clipboardEmpty()
-                        } else {
-                            viewModel.onUrlChanged(PlatformDetector.extractFirstUrl(pasted) ?: pasted)
-                            focusManager.clearFocus()
-                        }
-                    },
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ModeSegmented(
-                        mode = state.mode,
-                        onModeChange = viewModel::selectMode,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (preview != null) {
-                        Text(
-                            text = qualityLabel(state.quality),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
-            }
-
-            if (preview != null) {
-                item {
-                    QualityRow(
-                        heights = preview.availableHeights,
-                        selected = state.quality,
-                        onSelect = viewModel::selectQuality,
-                    )
-                }
-            }
-
-            if (state.isAnalyzing) {
-                item {
-                    OmniCard(Modifier.fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.analyzing),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                Text(
-                                    text = state.platform.label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            preview?.let { preview ->
-                item {
-                    PreviewCard(
-                        title = preview.title,
-                        uploader = preview.uploader,
-                        thumbnail = preview.thumbnailUrl,
-                        duration = preview.durationSeconds.toLong(),
-                        fileSize = preview.fileSizeApprox,
-                        heights = preview.availableHeights,
-                        platform = preview.platform,
-                        onDownload = viewModel::download,
-                    )
-                }
-            }
-
-            if (error != null) {
-                item {
-                    OmniCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(verticalAlignment = Alignment.Top) {
-                                Icon(
-                                    Icons.Rounded.ErrorOutline,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.preview_error),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                    Text(
-                                        text = error,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 3,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .clickable(onClick = viewModel::analyze)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Refresh,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(5.dp))
-                                Text(
-                                    stringResource(R.string.retry_analysis),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                SupportedSources()
-            }
-
-            if (tasks.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = stringResource(R.string.recent_downloads),
-                        actionLabel = stringResource(R.string.view_all),
-                        onAction = onOpenDownloads,
-                    )
-                }
-                items(tasks.take(3), key = { it.id }) { task ->
-                    RecentTaskRow(task)
-                }
-            }
-
-            item {
-                Text(
-                    text = stringResource(R.string.privacy_note),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                    textAlign = TextAlign.Center,
-                )
+        } else {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 560.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (landscape) 12.dp else 28.dp),
+            ) {
+                HomePet(petState, Modifier.fillMaxWidth().height(if (landscape) 144.dp else 224.dp))
+                Omnibox(state, viewModel::onUrlChanged, analyze)
+                state.error?.let { error -> AnalysisErrorCard(error, analyze) }
             }
         }
+        }
+    }
+
+    if (showDownloadOptions && preview != null) {
+        DownloadOptionsSheet(
+            preview = preview,
+            initialMode = state.mode,
+            initialQuality = state.quality,
+            onDismiss = { showDownloadOptions = false },
+            onConfirm = { mode, quality ->
+                showDownloadOptions = false
+                viewModel.download(mode, quality)
+            },
+        )
     }
 }
 
 @Composable
-private fun HomeHeader(activeCount: Int, onOpenDownloads: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BrandMark()
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(R.string.brand_subtitle),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 0.8.sp,
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                .clickable(onClick = onOpenDownloads)
-                .padding(horizontal = 11.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Rounded.History,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (activeCount > 0) {
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    activeCount.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
+private fun HomePet(state: PetState, modifier: Modifier) {
+    val description = stringResource(
+        when (state) {
+            PetState.IDLE -> R.string.pet_idle
+            PetState.ANALYZING -> R.string.pet_analyzing
+            PetState.COMPLETE -> R.string.pet_complete
+            PetState.ERROR -> R.string.pet_error
+        },
+    )
+    PetMascot(state, modifier, contentDescription = description)
 }
 
 @Composable
@@ -424,280 +230,168 @@ private fun Omnibox(
     state: HomeUiState,
     onValueChange: (String) -> Unit,
     onAnalyze: () -> Unit,
-    onPaste: () -> Unit,
 ) {
-    OmniCard(modifier = Modifier.fillMaxWidth(), contentPadding = 8.dp) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Rounded.Link,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .size(20.dp),
-                )
-                BasicTextField(
-                    value = state.url,
-                    onValueChange = onValueChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 12.dp),
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 15.sp,
-                        lineHeight = 21.sp,
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Go,
-                    ),
-                    keyboardActions = KeyboardActions(onGo = { onAnalyze() }),
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (state.url.isBlank()) {
-                                Text(
-                                    text = stringResource(R.string.url_hint),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                            }
-                            innerTextField()
+    Box(Modifier.fillMaxWidth().paperWell(CircleShape).padding(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                if (state.isValidUrl) {
+                    PlatformBadge(state.platform.id, size = 24.dp)
+                } else {
+                    SvgIcon(AppIcon.LINK, null, Modifier.size(20.dp), MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            BasicTextField(
+                value = state.url,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f).padding(vertical = 14.dp),
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { onAnalyze() }),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (state.url.isBlank()) {
+                            Text(
+                                stringResource(R.string.url_hint),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                            )
                         }
-                    },
-                )
-                Text(
-                    text = stringResource(R.string.paste),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .clickable(onClick = onPaste)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(end = 2.dp)
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable(onClick = onAnalyze),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (state.isAnalyzing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Icon(
-                            Icons.Rounded.ArrowForward,
-                            contentDescription = stringResource(R.string.analyze),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp),
-                        )
+                        innerTextField()
                     }
-                }
-            }
-
-            if (state.isValidUrl) {
-                Row(
-                    modifier = Modifier.padding(start = 10.dp, end = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                ) {
-                    PlatformBadge(state.platform.id, size = 20.dp)
-                    Text(
-                        text = state.platform.label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = stringResource(R.string.detected),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = OmniColors.Green,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Icon(
-                        Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = OmniColors.Green,
-                        modifier = Modifier.size(15.dp),
+                },
+            )
+            if (state.url.isNotEmpty()) {
+                PaperIconButton(onClick = { onValueChange("") }, modifier = Modifier.size(40.dp)) {
+                    SvgIcon(
+                        AppIcon.CLOSE,
+                        stringResource(R.string.clear_input),
+                        Modifier.size(18.dp),
+                        MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            } else if (state.url.isNotBlank()) {
-                Text(
-                    text = stringResource(R.string.invalid_url),
-                    modifier = Modifier.padding(start = 10.dp, bottom = 9.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
-        }
-    }
-}
-
-@Composable
-private fun QualityRow(
-    heights: List<Int>,
-    selected: QualityPreset,
-    onSelect: (QualityPreset) -> Unit,
-) {
-    val presets = remember(heights) {
-        buildList {
-            add(QualityPreset.BEST)
-            heights.filter { it in 360..2160 }
-                .distinct()
-                .sortedDescending()
-                .forEach { height ->
-                    QualityPreset.entries.firstOrNull { it.maxHeight == height }?.let(::add)
-                }
-            if (size == 1) {
-                addAll(listOf(QualityPreset.P1080, QualityPreset.P720, QualityPreset.P480, QualityPreset.P360))
-            }
-        }
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.quality).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 0.8.sp,
-        )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(presets, key = { it.id }) { preset ->
-                val active = preset == selected
-                Text(
-                    text = qualityLabel(preset),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(
-                            if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
-                        )
-                        .border(
-                            1.dp,
-                            if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                            else MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(999.dp),
-                        )
-                        .clickable { onSelect(preset) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PreviewCard(
-    title: String,
-    uploader: String,
-    thumbnail: String?,
-    duration: Long,
-    fileSize: Long,
-    heights: List<Int>,
-    platform: String,
-    onDownload: () -> Unit,
-) {
-    OmniCard(modifier = Modifier.fillMaxWidth(), contentPadding = 8.dp) {
-        Column {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(196.dp)
-                    .clip(RoundedCornerShape(13.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.background,
-                            ),
-                        ),
-                    ),
+            PaperIconButton(
+                onClick = onAnalyze,
+                accent = true,
+                enabled = state.isValidUrl && !state.isAnalyzing,
+                modifier = Modifier
+                    .size(44.dp)
             ) {
-                if (!thumbnail.isNullOrBlank()) {
-                    AsyncImage(
-                        model = thumbnail,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                if (state.isAnalyzing) {
+                    CircularProgressIndicator(
+                        Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    SvgIcon(
+                        AppIcon.ARROW_FORWARD,
+                        stringResource(R.string.analyze),
+                        Modifier.size(21.dp),
+                        MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
-                            ),
-                        ),
-                )
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                ) {
-                    if (duration > 0) {
-                        PreviewChip(Formatters.duration(duration))
-                    }
-                    PreviewChip(PlatformDetector.infoForId(platform).label)
-                    if (heights.isNotEmpty()) {
-                        PreviewChip("${heights.max()}p")
-                    }
-                }
             }
+        }
+    }
+}
 
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 12.dp)) {
+@Composable
+private fun AnalysisErrorCard(error: String, onRetry: () -> Unit) {
+    OmniCard(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.error.copy(alpha = 0.06f)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.preview_error), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    error,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (uploader.isNotBlank()) {
-                    Spacer(Modifier.height(3.dp))
+            }
+            PaperIconButton(onClick = onRetry) {
+                SvgIcon(AppIcon.REFRESH, stringResource(R.string.retry_analysis), Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewCard(preview: MediaPreview, onDownload: () -> Unit) {
+    val playbackKey = preview.playbackVariants.firstOrNull()?.video?.url
+    var playing by remember(preview.url, playbackKey) { mutableStateOf(false) }
+    val downloadInteraction = remember { MutableInteractionSource() }
+    OmniCard(Modifier.fillMaxWidth(), contentPadding = 8.dp) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(13.dp)).background(Color.Black),
+            ) {
+                if (playing && preview.playbackVariants.isNotEmpty()) {
+                    EmbeddedPlayer(preview.playbackVariants, preview.thumbnailUrl, Modifier.fillMaxSize())
+                } else {
+                    AsyncImage(
+                        model = preview.thumbnailUrl,
+                        contentDescription = preview.title,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))),
+                        ),
+                    )
+                    if (preview.playbackVariants.isNotEmpty()) {
+                        PaperIconButton(
+                            onClick = { playing = true },
+                            modifier = Modifier.align(Alignment.Center).size(56.dp),
+                        ) {
+                            SvgIcon(AppIcon.PLAY, stringResource(R.string.play_preview), Modifier.size(26.dp), MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                    Row(
+                        Modifier.align(Alignment.BottomStart).padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (preview.durationSeconds > 0) PreviewChip(Formatters.duration(preview.durationSeconds.toLong()))
+                        PreviewChip(PlatformDetector.infoForId(preview.platform).label)
+                    }
+                }
+            }
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp)) {
+                Text(
+                    preview.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (preview.uploader.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = uploader,
+                        preview.uploader,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-                Button(
+                Spacer(Modifier.height(14.dp))
+                PaperButton(
                     onClick = onDownload,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    accent = true,
                 ) {
-                    Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(19.dp))
+                    SvgIcon(AppIcon.DOWNLOAD, null, Modifier.size(19.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.download),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    if (fileSize > 0L) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "· ${Formatters.bytes(fileSize)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.68f),
-                        )
-                    }
+                    Text(stringResource(R.string.download))
                 }
             }
         }
@@ -707,60 +401,97 @@ private fun PreviewCard(
 @Composable
 private fun PreviewChip(label: String) {
     Text(
-        text = label,
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color.Black.copy(alpha = 0.56f))
-            .padding(horizontal = 9.dp, vertical = 5.dp),
+        label,
+        modifier = Modifier.clip(RoundedCornerShape(6.dp))
+            .background(Color.Black.copy(alpha = 0.54f)).padding(horizontal = 7.dp, vertical = 4.dp),
         color = Color.White,
         style = MaterialTheme.typography.labelMedium,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun SupportedSources() {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeader(stringResource(R.string.supported_title))
-        OmniCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun DownloadOptionsSheet(
+    preview: MediaPreview,
+    initialMode: DownloadMode,
+    initialQuality: QualityPreset,
+    onDismiss: () -> Unit,
+    onConfirm: (DownloadMode, QualityPreset) -> Unit,
+) {
+    val qualities = remember(preview.availableHeights) {
+        listOf(QualityPreset.BEST) + QualityPreset.entries.filter {
+            it.maxHeight != null && it.maxHeight in preview.availableHeights
+        }
+    }
+    var mode by rememberSaveable(preview.url) { mutableStateOf(initialMode) }
+    var quality by rememberSaveable(preview.url) {
+        mutableStateOf(initialQuality.takeIf { it in qualities } ?: QualityPreset.BEST)
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var confirming by remember { mutableStateOf(false) }
+    val confirmInteraction = remember { MutableInteractionSource() }
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.84f).dp
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        scrimColor = Color(0xFF6E5537).copy(alpha = 0.16f),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = maxHeight).animateContentSize(tween(260)).padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                Text(stringResource(R.string.download_options), style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    text = stringResource(R.string.supported_subtitle),
+                    preview.title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                val platforms = listOf("youtube", "bilibili", "tiktok", "instagram", "twitter", "reddit", "vimeo")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(platforms, key = { it }) { id ->
-                        val info = PlatformDetector.infoForId(id)
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            PlatformBadge(id, size = 17.dp)
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = info.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                ModeSegmented(mode, onModeChange = { mode = it }, modifier = Modifier.fillMaxWidth())
+                AnimatedVisibility(
+                    visible = mode == DownloadMode.VIDEO,
+                    enter = fadeIn(tween(180)) + expandVertically(tween(260)),
+                    exit = fadeOut(tween(140)) + shrinkVertically(tween(220)),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.quality), style = MaterialTheme.typography.titleMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            qualities.forEach { preset ->
+                                PaperButton(
+                                    selected = quality == preset,
+                                    onClick = { quality = preset },
+                                    modifier = Modifier.padding(vertical = 5.dp),
+                                ) { Text(qualityLabel(preset)) }
+                            }
                         }
-                    }
-                    item {
-                        Text(
-                            text = stringResource(R.string.supported_more),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
-                                .padding(horizontal = 11.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
                     }
                 }
             }
+            PaperButton(
+                onClick = {
+                    confirming = true
+                    scope.launch {
+                        sheetState.hide()
+                        onConfirm(mode, quality)
+                    }
+                },
+                enabled = !confirming,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                accent = true,
+            ) {
+                SvgIcon(AppIcon.DOWNLOAD, null, Modifier.size(19.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.start_download))
+                if (mode == DownloadMode.AUDIO) Text(" · M4A")
+            }
+            Spacer(Modifier.height(4.dp))
         }
     }
 }

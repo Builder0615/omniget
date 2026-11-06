@@ -1,38 +1,33 @@
 package com.openselena.omniget.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.Movie
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Share
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,30 +35,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.openselena.omniget.R
 import com.openselena.omniget.data.DownloadMode
 import com.openselena.omniget.data.DownloadStatus
 import com.openselena.omniget.data.DownloadTask
 import com.openselena.omniget.data.QualityPreset
+import com.openselena.omniget.download.MediaThumbnails
 import com.openselena.omniget.ui.theme.OmniColors
 import com.openselena.omniget.util.Formatters
 import com.openselena.omniget.util.PlatformDetector
@@ -72,31 +71,29 @@ import kotlinx.coroutines.delay
 @Composable
 fun OmniBackground(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
-    val glow = MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
-    val secondaryGlow = MaterialTheme.colorScheme.secondary.copy(alpha = 0.07f)
+    val dark = background.luminance() < 0.5f
+    val fiber = if (dark) Color.White.copy(alpha = 0.025f) else Color(0xFF6E5537).copy(alpha = 0.035f)
     Box(
         modifier
             .fillMaxSize()
             .background(background)
-            .drawBehind {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(glow, Color.Transparent),
-                        center = Offset(size.width * 0.18f, 0f),
-                        radius = size.width * 0.8f,
-                    ),
-                    radius = size.width * 0.8f,
-                    center = Offset(size.width * 0.18f, 0f),
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(secondaryGlow, Color.Transparent),
-                        center = Offset(size.width, size.height * 0.25f),
-                        radius = size.width * 0.65f,
-                    ),
-                    radius = size.width * 0.65f,
-                    center = Offset(size.width, size.height * 0.25f),
-                )
+            .drawWithCache {
+                val fibers = Path()
+                val spacing = 13.dp.toPx()
+                val columns = (size.width / spacing).toInt() + 1
+                val rows = (size.height / spacing).toInt() + 1
+                repeat(rows) { rowIndex ->
+                    repeat(columns) { columnIndex ->
+                        val seed = rowIndex * 37 + columnIndex * 71
+                        val left = columnIndex * spacing + (seed % 11) / 11f * spacing
+                        val top = rowIndex * spacing + (seed % 7) / 7f * spacing
+                        fibers.moveTo(left, top)
+                        fibers.lineTo(left + 0.8.dp.toPx(), top + 0.25.dp.toPx())
+                    }
+                }
+                onDrawBehind {
+                    drawPath(fibers, fiber, style = androidx.compose.ui.graphics.drawscope.Stroke(0.6.dp.toPx()))
+                }
             },
     )
 }
@@ -107,18 +104,14 @@ fun BrandMark(modifier: Modifier = Modifier, size: Dp = 34.dp) {
         modifier
             .size(size)
             .clip(RoundedCornerShape(size * 0.31f))
-            .background(
-                Brush.linearGradient(
-                    listOf(OmniColors.OrangeBright, OmniColors.Orange),
-                ),
-            ),
+            .background(Color(0xFFF9E9DA)),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Download,
+        Image(
+            painter = painterResource(R.drawable.xiaohei_icon),
             contentDescription = null,
-            tint = OmniColors.OnOrange,
-            modifier = Modifier.size(size * 0.62f),
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(size * 0.96f),
         )
     }
 }
@@ -131,13 +124,9 @@ fun OmniCard(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.paperRaised(shape = RoundedCornerShape(18.dp), color = color),
         shape = RoundedCornerShape(18.dp),
         color = color,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline,
-        ),
         tonalElevation = 0.dp,
     ) {
         Box(Modifier.padding(contentPadding)) {
@@ -164,15 +153,13 @@ fun SectionHeader(
             color = MaterialTheme.colorScheme.onBackground,
         )
         if (actionLabel != null && onAction != null) {
-            Text(
-                text = actionLabel,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .clickable(onClick = onAction)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            PaperButton(onClick = onAction) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -181,6 +168,16 @@ fun SectionHeader(
 fun PlatformBadge(platformId: String, modifier: Modifier = Modifier, size: Dp = 28.dp) {
     val platform = PlatformDetector.infoForId(platformId)
     val color = Color(platform.color)
+    val icon = when (platformId) {
+        "youtube" -> AppIcon.YOUTUBE
+        "bilibili" -> AppIcon.BILIBILI
+        "tiktok" -> AppIcon.TIKTOK
+        "instagram" -> AppIcon.INSTAGRAM
+        "twitter" -> AppIcon.X
+        "reddit" -> AppIcon.REDDIT
+        "vimeo" -> AppIcon.VIMEO
+        else -> AppIcon.LINK
+    }
     Box(
         modifier
             .size(size)
@@ -189,11 +186,11 @@ fun PlatformBadge(platformId: String, modifier: Modifier = Modifier, size: Dp = 
             .border(1.dp, color.copy(alpha = 0.34f), RoundedCornerShape(size * 0.3f)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = platform.label.take(1).uppercase(),
-            color = color,
-            fontSize = (size.value * 0.42f).sp,
-            fontWeight = FontWeight.Bold,
+        SvgIcon(
+            icon = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(size * 0.58f),
         )
     }
 }
@@ -204,25 +201,31 @@ fun ModeSegmented(
     onModeChange: (DownloadMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-    ) {
-        Row(Modifier.padding(3.dp)) {
+    BoxWithConstraints(modifier.height(48.dp).paperWell(RoundedCornerShape(14.dp))) {
+        val slotWidth = (maxWidth - 8.dp) / 2
+        val sliderOffset by animateDpAsState(
+            targetValue = if (mode == DownloadMode.VIDEO) 0.dp else slotWidth,
+            animationSpec = spring(dampingRatio = 0.82f, stiffness = 450f),
+            label = "mode-slider",
+        )
+        Box(
+            Modifier.offset(x = sliderOffset + 4.dp, y = 4.dp)
+                .width(slotWidth).height(40.dp)
+                .paperRaised(RoundedCornerShape(10.dp), elevation = 2.dp),
+        )
+        Row(Modifier.fillMaxSize().padding(4.dp).selectableGroup()) {
             Segment(
                 label = stringResource(R.string.video),
-                icon = Icons.Rounded.Movie,
+                icon = AppIcon.MOVIE,
                 active = mode == DownloadMode.VIDEO,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { onModeChange(DownloadMode.VIDEO) },
             )
             Segment(
                 label = stringResource(R.string.audio),
-                icon = Icons.Rounded.MusicNote,
+                icon = AppIcon.MUSIC,
                 active = mode == DownloadMode.AUDIO,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { onModeChange(DownloadMode.AUDIO) },
             )
         }
@@ -232,25 +235,31 @@ fun ModeSegmented(
 @Composable
 private fun Segment(
     label: String,
-    icon: ImageVector,
+    icon: AppIcon,
     active: Boolean,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
-    val background = if (active) MaterialTheme.colorScheme.primary else Color.Transparent
-    val foreground = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier
-            .clip(RoundedCornerShape(9.dp))
-            .clickable(onClick = onClick)
-            .background(background)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    val foreground by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(180),
+        label = "mode-ink-color",
+    )
+    PaperPressable(
+        onClick = onClick,
+        modifier = modifier.semantics { selected = active },
+        shape = RoundedCornerShape(9.dp),
+        role = Role.Tab,
     ) {
-        Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(label, color = foreground, style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SvgIcon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(label, color = foreground, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -372,38 +381,60 @@ fun DownloadTaskCard(
 
             when (task.status) {
                 DownloadStatus.DOWNLOADING -> {
-                    ProgressTrack(task.progress, OmniColors.Blue)
+                    val preparing = task.progress <= 0f && task.statusLine.isBlank()
+                    ProgressTrack(task.progress, OmniColors.Blue, indeterminate = preparing)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = buildString {
-                                append("${task.progress.toInt()}%")
-                                if (task.speedBps > 0) append("  ·  ${Formatters.speed(task.speedBps)}")
-                                if (task.etaSeconds >= 0) append("  ·  ${Formatters.eta(task.etaSeconds)}")
+                            text = if (preparing) {
+                                stringResource(R.string.download_progress_preparing)
+                            } else {
+                                buildString {
+                                    append("${task.progress.toInt()}%")
+                                    if (task.totalBytes > 0L) {
+                                        append("  ·  ${Formatters.bytes(task.downloadedBytes)} / ${Formatters.bytes(task.totalBytes)}")
+                                    }
+                                    if (task.speedBps > 0) append("  ·  ${Formatters.speed(task.speedBps)}")
+                                    if (task.etaSeconds >= 0) append("  ·  ${Formatters.eta(task.etaSeconds)}")
+                                }
                             },
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                         )
-                        TaskAction(Icons.Rounded.Pause, stringResource(R.string.pause), onPause)
-                        TaskAction(Icons.Rounded.Close, stringResource(R.string.cancel), onCancel)
+                        TaskAction(AppIcon.PAUSE, stringResource(R.string.pause), onPause)
+                        TaskAction(AppIcon.CLOSE, stringResource(R.string.cancel), onCancel)
                     }
                 }
 
                 DownloadStatus.PAUSED -> {
                     ProgressTrack(task.progress, MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TaskAction(Icons.Rounded.PlayArrow, stringResource(R.string.resume), onResume, accent = true)
-                        TaskAction(Icons.Rounded.Close, stringResource(R.string.cancel), onCancel)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${task.progress.toInt()}%" +
+                                if (task.totalBytes > 0L) {
+                                    "  ·  ${Formatters.bytes(task.downloadedBytes)} / ${Formatters.bytes(task.totalBytes)}"
+                                } else {
+                                    ""
+                                },
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TaskAction(AppIcon.PLAY, stringResource(R.string.resume), onResume, accent = true)
+                        TaskAction(AppIcon.CLOSE, stringResource(R.string.cancel), onCancel)
                     }
                 }
 
                 DownloadStatus.QUEUED -> {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TaskAction(Icons.Rounded.Close, stringResource(R.string.cancel), onCancel)
+                        TaskAction(AppIcon.CLOSE, stringResource(R.string.cancel), onCancel)
                     }
                 }
 
@@ -418,8 +449,8 @@ fun DownloadTaskCard(
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Icon(
-                                Icons.Rounded.ErrorOutline,
+                            SvgIcon(
+                                AppIcon.ERROR,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp),
@@ -437,20 +468,31 @@ fun DownloadTaskCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        TaskAction(Icons.Rounded.Refresh, stringResource(R.string.retry), onRetry, accent = true)
-                        TaskAction(Icons.Rounded.Close, stringResource(R.string.remove), onRemove)
+                        TaskAction(AppIcon.REFRESH, stringResource(R.string.retry), onRetry, accent = true)
+                        TaskAction(AppIcon.CLOSE, stringResource(R.string.remove), onRemove)
                     }
                 }
 
                 DownloadStatus.COMPLETED -> {
+                    ProgressTrack(100f, OmniColors.Green)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        TaskAction(Icons.Rounded.OpenInNew, stringResource(R.string.open), onOpen)
-                        TaskAction(Icons.Rounded.Share, stringResource(R.string.share), onShare)
+                        Text(
+                            text = "100%" + if (task.totalBytes > 0L) {
+                                "  ·  ${Formatters.bytes(task.totalBytes)}"
+                            } else {
+                                ""
+                            },
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = OmniColors.Green,
+                        )
+                        TaskAction(AppIcon.OPEN_EXTERNAL, stringResource(R.string.open), onOpen)
+                        TaskAction(AppIcon.SHARE, stringResource(R.string.share), onShare)
                         TaskAction(
-                            Icons.Rounded.Delete,
+                            AppIcon.DELETE,
                             stringResource(if (confirmDelete) R.string.confirm_delete else R.string.delete_file),
                             onClick = {
                                 if (confirmDelete) {
@@ -513,6 +555,18 @@ private fun TaskPoster(
     width: Dp = 88.dp,
     height: Dp = 64.dp,
 ) {
+    val context = LocalContext.current
+    val cover by produceState(
+        initialValue = task.thumbnailUrl,
+        task.id,
+        task.thumbnailUrl,
+        task.fileUri,
+        task.filePath,
+    ) {
+        if (task.thumbnailUrl.isNullOrBlank() && task.mode == DownloadMode.VIDEO) {
+            value = MediaThumbnails.fromTask(context, task)
+        }
+    }
     Box(
         Modifier
             .width(width)
@@ -525,16 +579,16 @@ private fun TaskPoster(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (!task.thumbnailUrl.isNullOrBlank()) {
+        if (!cover.isNullOrBlank()) {
             AsyncImage(
-                model = task.thumbnailUrl,
+                model = cover,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            Icon(
-                imageVector = if (task.mode == DownloadMode.AUDIO) Icons.Rounded.MusicNote else Icons.Rounded.Movie,
+            SvgIcon(
+                icon = if (task.mode == DownloadMode.AUDIO) AppIcon.MUSIC else AppIcon.MOVIE,
                 contentDescription = null,
                 tint = accent,
                 modifier = Modifier.size(26.dp),
@@ -553,7 +607,18 @@ private fun TaskPoster(
 }
 
 @Composable
-private fun ProgressTrack(progress: Float, color: Color) {
+private fun ProgressTrack(progress: Float, color: Color, indeterminate: Boolean = false) {
+    if (indeterminate) {
+        LinearProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(999.dp)),
+            color = color,
+            trackColor = MaterialTheme.colorScheme.outline,
+        )
+        return
+    }
     val animated by animateFloatAsState(
         targetValue = (progress / 100f).coerceIn(0f, 1f),
         label = "download-progress",
@@ -577,14 +642,17 @@ private fun ProgressTrack(progress: Float, color: Color) {
 
 @Composable
 private fun TaskAction(
-    icon: ImageVector,
+    icon: AppIcon,
     label: String,
     onClick: () -> Unit,
     accent: Boolean = false,
     tint: Color = if (accent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    IconButton(onClick = onClick, modifier = Modifier.size(34.dp)) {
-        Icon(
+    PaperIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(44.dp),
+    ) {
+        SvgIcon(
             icon,
             contentDescription = label,
             tint = tint,
@@ -607,8 +675,8 @@ fun TinyArrow(
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     Box(modifier.size(14.dp)) {
-        Icon(
-            Icons.Rounded.OpenInNew,
+        SvgIcon(
+            AppIcon.OPEN_EXTERNAL,
             contentDescription = null,
             tint = color,
             modifier = Modifier.fillMaxSize(),

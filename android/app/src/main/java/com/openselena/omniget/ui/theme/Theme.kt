@@ -7,11 +7,13 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -24,86 +26,98 @@ import androidx.core.view.WindowCompat
 import com.openselena.omniget.data.ThemeMode
 
 object OmniColors {
-    val Orange = Color(0xFFFF9F0A)
-    val OrangeBright = Color(0xFFFFB340)
-    val OnOrange = Color(0xFF1E1200)
-    val Blue = Color(0xFF0A84FF)
-    val Green = Color(0xFF30D158)
-    val Red = Color(0xFFFF453A)
-    val Yellow = Color(0xFFFFD60A)
-    val Purple = Color(0xFFBF5AF2)
-    val Teal = Color(0xFF40C8E0)
+    val Orange = Color(0xFFD97757)
+    val OrangeBright = Color(0xFFE5A087)
+    val OnOrange = Color(0xFF2A1A12)
+    val Blue = Color(0xFF4F7381)
+    val Green = Color(0xFF4E7A55)
+    val Red = Color(0xFFB5452A)
+    val Yellow = Color(0xFF8A662E)
+    val Purple = Color(0xFF86708E)
+    val Teal = Color(0xFF507E7B)
 
-    val DarkCanvas = Color(0xFF1C1C1E)
-    val DarkPane = Color(0xFF232325)
-    val DarkSurface = Color(0xFF2A2A2D)
-    val DarkSurfaceHigh = Color(0xFF38383B)
-    val DarkText = Color(0xFFF5F5F7)
-    val DarkMuted = Color(0xFF98989D)
+    val DarkCanvas = Color(0xFF24221F)
+    val DarkPane = Color(0xFF1E1C19)
+    val DarkSurface = Color(0xFF2D2A25)
+    val DarkSurfaceHigh = Color(0xFF211F1B)
+    val DarkText = Color(0xFFECE5D8)
+    val DarkMuted = Color(0xFFB8AFA0)
 
-    val LightCanvas = Color(0xFFF3F1EC)
-    val LightPane = Color(0xFFFBFAF7)
-    val LightSurface = Color(0xFFFFFFFF)
-    val LightSurfaceHigh = Color(0xFFF5F3EE)
-    val LightText = Color(0xFF1D1D1F)
-    val LightMuted = Color(0xFF6E6A64)
+    val LightCanvas = Color(0xFFF7F5F0)
+    val LightPane = Color(0xFFEEEAE1)
+    val LightSurface = Color(0xFFF7F5F0)
+    val LightSurfaceHigh = Color(0xFFEDE8DE)
+    val LightText = Color(0xFF2B2A27)
+    val LightMuted = Color(0xFF6E6A62)
 }
 
 private val DarkScheme = darkColorScheme(
-    primary = OmniColors.Orange,
+    primary = Color(0xFFE7A184),
     onPrimary = OmniColors.OnOrange,
-    primaryContainer = OmniColors.OrangeBright,
-    onPrimaryContainer = OmniColors.OnOrange,
-    secondary = OmniColors.Blue,
-    onSecondary = Color.White,
-    tertiary = OmniColors.Teal,
+    primaryContainer = Color(0xFF93563F),
+    onPrimaryContainer = Color(0xFFFFE9DF),
+    secondary = Color(0xFFA3BBC2),
+    onSecondary = Color(0xFF20343B),
+    tertiary = Color(0xFF9DBDA7),
     background = OmniColors.DarkCanvas,
     onBackground = OmniColors.DarkText,
     surface = OmniColors.DarkSurface,
     onSurface = OmniColors.DarkText,
     surfaceVariant = OmniColors.DarkSurfaceHigh,
     onSurfaceVariant = OmniColors.DarkMuted,
-    outline = Color.White.copy(alpha = 0.14f),
-    error = OmniColors.Red,
-    onError = Color.White,
+    outline = Color(0xFF8C8171).copy(alpha = 0.32f),
+    outlineVariant = Color(0xFF8C8171).copy(alpha = 0.18f),
+    surfaceContainerLowest = OmniColors.DarkPane,
+    surfaceContainerLow = OmniColors.DarkCanvas,
+    surfaceContainer = OmniColors.DarkSurface,
+    surfaceContainerHigh = Color(0xFF34302B),
+    surfaceContainerHighest = Color(0xFF3B362F),
+    error = Color(0xFFF0A287),
+    onError = Color(0xFF451A0D),
 )
 
 private val LightScheme = lightColorScheme(
-    primary = Color(0xFFFF9500),
-    onPrimary = OmniColors.OnOrange,
-    primaryContainer = Color(0xFFFFE1B3),
-    onPrimaryContainer = Color(0xFF3A2400),
-    secondary = Color(0xFF007AFF),
+    primary = Color(0xFFA9512F),
+    onPrimary = Color.White,
+    primaryContainer = OmniColors.Orange,
+    onPrimaryContainer = OmniColors.OnOrange,
+    secondary = OmniColors.Blue,
     onSecondary = Color.White,
-    tertiary = Color(0xFF0891B2),
+    tertiary = OmniColors.Green,
     background = OmniColors.LightCanvas,
     onBackground = OmniColors.LightText,
     surface = OmniColors.LightSurface,
     onSurface = OmniColors.LightText,
     surfaceVariant = OmniColors.LightSurfaceHigh,
     onSurfaceVariant = OmniColors.LightMuted,
-    outline = Color.Black.copy(alpha = 0.14f),
-    error = Color(0xFFD70015),
+    outline = Color(0xFF6E5537).copy(alpha = 0.18f),
+    outlineVariant = Color(0xFF6E5537).copy(alpha = 0.10f),
+    surfaceContainerLowest = Color(0xFFFCFAF6),
+    surfaceContainerLow = OmniColors.LightCanvas,
+    surfaceContainer = OmniColors.LightPane,
+    surfaceContainerHigh = OmniColors.LightSurfaceHigh,
+    surfaceContainerHighest = Color(0xFFE8E3D8),
+    error = OmniColors.Red,
     onError = Color.White,
 )
 
 private val OmniTypography = Typography(
     displaySmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
         lineHeight = 38.sp,
         letterSpacing = (-0.7).sp,
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 33.sp,
         letterSpacing = (-0.4).sp,
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
@@ -182,7 +196,11 @@ fun OmniGetTheme(
         colorScheme = if (dark) DarkScheme else LightScheme,
         typography = OmniTypography,
         shapes = OmniShapes,
-        content = content,
+        content = {
+            CompositionLocalProvider(LocalContentColor provides if (dark) DarkScheme.onBackground else LightScheme.onBackground) {
+                content()
+            }
+        },
     )
 }
 

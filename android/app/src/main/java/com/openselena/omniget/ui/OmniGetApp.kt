@@ -2,10 +2,20 @@ package com.openselena.omniget.ui
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -17,16 +27,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,16 +44,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,9 +66,15 @@ import com.openselena.omniget.data.DownloadStatus
 import com.openselena.omniget.data.DownloadTask
 import com.openselena.omniget.download.DownloadService
 import com.openselena.omniget.download.FileDelivery
+import com.openselena.omniget.ui.components.AppIcon
 import com.openselena.omniget.ui.components.BrandMark
 import com.openselena.omniget.ui.components.OmniBackground
 import com.openselena.omniget.ui.components.OmniCard
+import com.openselena.omniget.ui.components.PaperPressable
+import com.openselena.omniget.ui.components.paperWell
+import com.openselena.omniget.ui.components.paperRaised
+import com.openselena.omniget.ui.components.pressMotion
+import com.openselena.omniget.ui.components.SvgIcon
 import com.openselena.omniget.ui.screens.DownloadsScreen
 import com.openselena.omniget.ui.screens.HomeScreen
 import com.openselena.omniget.ui.screens.SettingsScreen
@@ -69,12 +84,12 @@ import kotlin.math.absoluteValue
 import kotlinx.coroutines.launch
 
 private enum class Destination(
-    val icon: ImageVector,
+    val icon: AppIcon,
     val labelRes: Int,
 ) {
-    HOME(Icons.Rounded.Home, R.string.nav_home),
-    DOWNLOADS(Icons.Rounded.Download, R.string.nav_downloads),
-    SETTINGS(Icons.Rounded.Settings, R.string.nav_settings),
+    HOME(AppIcon.HOME, R.string.nav_home),
+    DOWNLOADS(AppIcon.DOWNLOAD, R.string.nav_downloads),
+    SETTINGS(AppIcon.SETTINGS, R.string.nav_settings),
 }
 
 @Composable
@@ -86,6 +101,8 @@ fun OmniGetApp(
     onOpenDownloadsConsumed: () -> Unit,
 ) {
     val context = LocalContext.current
+    val isLandscape =
+        LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val homeViewModel: HomeViewModel = viewModel()
     val tasks by app.downloads.tasks.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -113,62 +130,74 @@ fun OmniGetApp(
         }
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val wide = maxWidth >= 800.dp
+    val screenContent: @Composable (Destination, Modifier) -> Unit = { target, contentModifier ->
+        when (target) {
+            Destination.HOME -> HomeScreen(
+                viewModel = homeViewModel,
+                snackbarHostState = snackbarHostState,
+                modifier = contentModifier,
+            )
+
+            Destination.DOWNLOADS -> DownloadsScreen(
+                tasks = tasks,
+                onPause = { app.downloads.pause(it.id) },
+                onResume = { app.downloads.resume(it.id) },
+                onCancel = { app.downloads.cancel(it.id) },
+                onRetry = { app.downloads.retry(it.id) },
+                onOpen = { task -> openTask(context, task) },
+                onShare = { task -> shareTask(context, task) },
+                onRemove = { app.downloads.remove(it.id, deleteFile = false) },
+                onDeleteFile = { app.downloads.remove(it.id, deleteFile = true) },
+                onClearFinished = { app.downloads.clearFinished() },
+                onGoHome = { destination = Destination.HOME },
+                modifier = contentModifier,
+            )
+
+            Destination.SETTINGS -> SettingsScreen(
+                settingsRepository = app.settings,
+                downloads = app.downloads,
+                snackbarHostState = snackbarHostState,
+                modifier = contentModifier,
+            )
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
         OmniBackground()
-        Row(Modifier.fillMaxSize()) {
-            if (wide) {
-                AppRail(
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+            ) {
+                LandscapeNavigationRail(
                     destination = destination,
                     activeCount = activeCount,
                     onDestination = { destination = it },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(start = 16.dp, top = 12.dp, end = 10.dp, bottom = 14.dp),
                 )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .statusBarsPadding()
-                    .padding(bottom = if (wide) 0.dp else 88.dp),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                when (destination) {
-                    Destination.HOME -> HomeScreen(
-                        viewModel = homeViewModel,
-                        tasks = tasks,
-                        snackbarHostState = snackbarHostState,
-                        onOpenDownloads = { destination = Destination.DOWNLOADS },
-                        showBranding = !wide,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    Destination.DOWNLOADS -> DownloadsScreen(
-                        tasks = tasks,
-                        onPause = { app.downloads.pause(it.id) },
-                        onResume = { app.downloads.resume(it.id) },
-                        onCancel = { app.downloads.cancel(it.id) },
-                        onRetry = { app.downloads.retry(it.id) },
-                        onOpen = { task -> openTask(context, task) },
-                        onShare = { task -> shareTask(context, task) },
-                        onRemove = { app.downloads.remove(it.id, deleteFile = false) },
-                        onDeleteFile = { app.downloads.remove(it.id, deleteFile = true) },
-                        onClearFinished = { app.downloads.clearFinished() },
-                        onGoHome = { destination = Destination.HOME },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    Destination.SETTINGS -> SettingsScreen(
-                        settingsRepository = app.settings,
-                        downloads = app.downloads,
-                        snackbarHostState = snackbarHostState,
-                        showBranding = !wide,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(end = 24.dp),
+                ) {
+                    DestinationContent(destination, screenContent)
                 }
             }
-        }
-
-        if (!wide) {
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(bottom = 96.dp),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                DestinationContent(destination, screenContent)
+            }
             BottomNavigation(
                 destination = destination,
                 activeCount = activeCount,
@@ -176,7 +205,7 @@ fun OmniGetApp(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
             )
         }
 
@@ -185,115 +214,113 @@ fun OmniGetApp(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = if (wide) 18.dp else 92.dp, start = 18.dp, end = 18.dp),
+                .padding(
+                    start = if (isLandscape) 140.dp else 24.dp,
+                    end = 24.dp,
+                    bottom = if (isLandscape) 16.dp else 104.dp,
+                ),
         )
     }
 }
 
 @Composable
-private fun AppRail(
+private fun DestinationContent(
     destination: Destination,
-    activeCount: Int,
-    onDestination: (Destination) -> Unit,
+    content: @Composable (Destination, Modifier) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .width(224.dp)
-            .fillMaxHeight(),
-        color = MaterialTheme.colorScheme.background.copy(alpha = 0.72f),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 14.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BrandMark()
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text(
-                        stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        stringResource(R.string.brand_subtitle),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            Spacer(Modifier.height(20.dp))
-            Destination.entries.forEach { item ->
-                RailItem(
-                    destination = item,
-                    selected = destination == item,
-                    badge = if (item == Destination.DOWNLOADS) activeCount else 0,
-                    onClick = { onDestination(item) },
-                )
-                Spacer(Modifier.height(4.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            OmniCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "LOCAL-FIRST",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "yt-dlp + FFmpeg",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+    val stateHolder = rememberSaveableStateHolder()
+    AnimatedContent(
+        targetState = destination,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            (fadeIn(tween(240)) + slideInVertically(tween(280)) { it / 40 }) togetherWith fadeOut(tween(120))
+        },
+        label = "navigation",
+    ) { target ->
+        stateHolder.SaveableStateProvider(target.name) {
+            content(target, Modifier.fillMaxSize())
         }
     }
 }
 
 @Composable
-private fun RailItem(
+private fun LandscapeNavigationRail(
     destination: Destination,
-    selected: Boolean,
-    badge: Int,
-    onClick: () -> Unit,
+    activeCount: Int,
+    onDestination: (Destination) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val background = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.13f) else Color.Transparent
-    val foreground = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(background)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    OmniCard(
+        modifier = modifier.widthIn(max = 88.dp),
+        contentPadding = 4.dp,
     ) {
-        Icon(destination.icon, contentDescription = null, tint = foreground, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = stringResource(destination.labelRes),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelLarge,
-            color = foreground,
-        )
-        if (badge > 0) {
-            Text(
-                text = badge.toString(),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            BrandMark(size = 36.dp)
+            Spacer(Modifier.height(18.dp))
+            val railOffset by animateDpAsState(
+                targetValue = 66.dp * destination.ordinal,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+                label = "rail-slider",
             )
+            Box(Modifier.fillMaxWidth().height(66.dp * Destination.entries.size)) {
+                Box(Modifier.offset(y = railOffset).fillMaxWidth().height(60.dp)
+                    .paperRaised(RoundedCornerShape(17.dp), elevation = 3.dp))
+                Column {
+            Destination.entries.forEach { item ->
+                val selected = destination == item
+                val foreground = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                PaperPressable(
+                    onClick = { onDestination(item) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .semantics { this.selected = selected },
+                    shape = RoundedCornerShape(17.dp),
+                    role = Role.Tab,
+                ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 9.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box {
+                        SvgIcon(
+                            item.icon,
+                            contentDescription = null,
+                            tint = foreground,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        if (item == Destination.DOWNLOADS && activeCount > 0) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(7.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(MaterialTheme.colorScheme.primary),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(item.labelRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = foreground,
+                        maxLines = 1,
+                    )
+                }
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+                }
+            }
         }
     }
 }
@@ -305,40 +332,52 @@ private fun BottomNavigation(
     onDestination: (Destination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    OmniCard(
         modifier = modifier
             .fillMaxWidth()
             .widthIn(max = 500.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        shadowElevation = 18.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        contentPadding = 5.dp,
     ) {
-        Row(Modifier.padding(5.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val slotWidth = maxWidth / Destination.entries.size
+            val sliderOffset by animateDpAsState(
+                targetValue = slotWidth * destination.ordinal,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
+                label = "tab-slider",
+            )
+            Box(Modifier.matchParentSize()) {
+                Box(Modifier.offset(x = sliderOffset).width(slotWidth).fillMaxHeight()
+                    .paperRaised(RoundedCornerShape(17.dp), elevation = 3.dp))
+            }
+        Row {
             Destination.entries.forEach { item ->
                 val selected = destination == item
-                val foreground = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                Column(
+                val foreground by animateColorAsState(
+                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tween(220), label = "tab-foreground",
+                )
+                val iconScale by animateFloatAsState(if (selected) 1.04f else 1f, tween(220), label = "tab-icon")
+                PaperPressable(
+                    onClick = { onDestination(item) },
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(17.dp))
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
-                            else Color.Transparent,
-                        )
-                        .clickable { onDestination(item) }
-                        .padding(vertical = 8.dp),
+                        .semantics { this.selected = selected },
+                    shape = RoundedCornerShape(17.dp),
+                    role = Role.Tab,
+                ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box {
-                        Icon(item.icon, contentDescription = null, tint = foreground, modifier = Modifier.size(21.dp))
+                        SvgIcon(item.icon, contentDescription = null, tint = foreground, modifier = Modifier.size(21.dp).graphicsLayer { scaleX = iconScale; scaleY = iconScale })
                         if (item == Destination.DOWNLOADS && activeCount > 0) {
                             Box(
                                 Modifier
                                     .align(Alignment.TopEnd)
                                     .size(8.dp)
                                     .clip(RoundedCornerShape(999.dp))
-                                    .background(OmniColors.Orange),
+                                    .background(MaterialTheme.colorScheme.primary),
                             )
                         }
                     }
@@ -350,7 +389,9 @@ private fun BottomNavigation(
                         maxLines = 1,
                     )
                 }
+                }
             }
+        }
         }
     }
 }

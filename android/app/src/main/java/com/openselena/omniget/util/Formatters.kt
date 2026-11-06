@@ -35,6 +35,9 @@ object Formatters {
 
     fun eta(seconds: Long): String =
         if (seconds < 0L) "" else duration(seconds).ifBlank { "0:00" }
+
+    fun playbackTime(milliseconds: Long): String =
+        duration((milliseconds.coerceAtLeast(0L)) / 1000L).ifBlank { "0:00" }
 }
 
 object ProgressParser {

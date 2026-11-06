@@ -1,13 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#1E1200"
-        android:pathData="M50,23h8v36.7l12.7,-12.7 5.7,5.7L54,75.1 31.6,52.7l5.7,-5.7L50,59.7V23z" />
-    <path
-        android:fillColor="#1E1200"
-        android:pathData="M28,78h52v7H28z" />
-</vector>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/xiaohei_icon"
+    android:inset="8dp" />

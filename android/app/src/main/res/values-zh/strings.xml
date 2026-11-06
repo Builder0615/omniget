@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OmniGet</string>
+    <string name="app_name">小黑下载</string>
     <string name="brand_subtitle">安卓版</string>
     <string name="nav_home">首页</string>
     <string name="nav_downloads">下载</string>
@@ -10,8 +10,7 @@
     <string name="home_title">粘贴链接，留住内容。</string>
     <string name="home_subtitle">支持 YouTube、哔哩哔哩、TikTok、Instagram、X 等 1,800+ 网站，全部在设备本地运行。</string>
     <string name="url_hint">粘贴视频或媒体链接</string>
-    <string name="paste">粘贴</string>
-    <string name="paste_empty">剪贴板中没有链接。</string>
+    <string name="clear_input">清除输入</string>
     <string name="analyze">解析</string>
     <string name="analyzing">正在解析链接…</string>
     <string name="video">视频</string>
@@ -19,17 +18,34 @@
     <string name="quality">清晰度</string>
     <string name="quality_best">最佳</string>
     <string name="download">下载</string>
+    <string name="download_options">下载选项</string>
+    <string name="start_download">开始下载</string>
+    <string name="pet_idle">小黑正在打盹</string>
+    <string name="pet_analyzing">小黑正在解析链接</string>
+    <string name="pet_complete">小黑已找到视频</string>
+    <string name="pet_error">小黑暂时没找到内容</string>
+    <string name="play_preview">播放预览</string>
+    <string name="play">播放</string>
+    <string name="enter_fullscreen">进入全屏</string>
+    <string name="exit_fullscreen">退出全屏</string>
+    <string name="playback_auto_quality">自动</string>
+    <string name="playback_speed">倍速</string>
+    <string name="playback_failed">这个视频流暂时无法在应用内播放。</string>
+    <string name="retry_playback">重新播放</string>
     <string name="download_added">已加入下载队列。</string>
     <string name="supported_title">一个输入框，连接多种来源</string>
     <string name="supported_subtitle">由 Android 内置的 yt-dlp 与 FFmpeg 驱动。</string>
     <string name="supported_more">另有 1,800+ 网站</string>
+    <string name="preview_section_title">预览与下载</string>
+    <string name="preview_empty_title">还没有解析内容</string>
+    <string name="preview_empty_hint">在左侧粘贴链接，这里会显示封面、播放器与下载选项。</string>
     <string name="recent_downloads">最近下载</string>
     <string name="view_all">查看全部</string>
     <string name="detected">已识别</string>
     <string name="invalid_url">请输入完整的 http 或 https 链接。</string>
     <string name="preview_error">无法读取这个链接。</string>
     <string name="retry_analysis">重试</string>
-    <string name="privacy_note">无需 OmniGet 账号，没有远程解析服务。链接与文件都留在本机。</string>
+    <string name="privacy_note">无需账号，链接解析和媒体下载都在本机完成。</string>
 
     <string name="downloads_title">下载</string>
     <plurals name="downloads_summary">
@@ -41,6 +57,7 @@
     <string name="filter_completed">已完成</string>
     <string name="filter_failed">失败</string>
     <string name="downloads_empty">还没有下载</string>
+    <string name="downloads_no_match">这里还没有下载任务</string>
     <string name="downloads_empty_hint">在首页粘贴链接，开始本地下载。</string>
     <string name="go_home">粘贴链接</string>
     <string name="status_queued">等待中</string>
@@ -48,6 +65,7 @@
     <string name="status_paused">已暂停</string>
     <string name="status_completed">已完成</string>
     <string name="status_failed">失败</string>
+    <string name="download_progress_preparing">正在准备下载…</string>
     <string name="pause">暂停</string>
     <string name="resume">继续</string>
     <string name="cancel">取消</string>
@@ -56,12 +74,25 @@
     <string name="open">打开</string>
     <string name="share">分享</string>
     <string name="delete_file">删除文件</string>
+    <string name="task_actions">更多操作</string>
+    <string name="delete_confirm_title">删除下载文件？</string>
+    <string name="delete_confirm_message">这会删除本地文件和这条下载记录。</string>
     <string name="confirm_delete">再次点击删除</string>
     <string name="processing">正在处理…</string>
     <string name="clear_finished">清理完成</string>
+    <string name="clear_downloads_title">清空下载记录？</string>
+    <string name="clear_downloads_message">仅移除已完成和失败的记录，保留下载文件。</string>
+    <string name="clear_downloads_confirm">清空记录</string>
 
     <string name="settings_title">设置</string>
     <string name="settings_appearance">外观</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_switch_on">已开启</string>
+    <string name="settings_switch_off">已关闭</string>
+    <string name="settings_tools">工具</string>
+    <string name="settings_cookie_label">登录 Cookie</string>
+    <string name="settings_cookie_empty">未导入</string>
+    <string name="settings_cookie_ready">已导入</string>
     <string name="theme_system">跟随系统</string>
     <string name="theme_dark">深色</string>
     <string name="theme_light">浅色</string>
@@ -90,11 +121,11 @@
     <string name="cookie_imported">Cookie 文件已导入。</string>
     <string name="cookie_invalid">无法导入该文件。</string>
     <string name="settings_about">关于</string>
-    <string name="about_text">开源、本地优先的 Android 媒体下载器。沿用 OmniGet 的视觉语言，使用 Jetpack Compose 重写。</string>
+    <string name="about_text">小黑下载是一款开源的 Android 媒体下载器。链接解析、视频预览和媒体下载都在本机完成。</string>
     <string name="version">版本 %1$s</string>
     <string name="open_source">开源 · GPL-3.0</string>
     <string name="notification_channel_name">下载</string>
-    <string name="notification_channel_description">OmniGet 下载进度</string>
+    <string name="notification_channel_description">小黑下载的下载进度</string>
     <string name="notification_preparing">正在准备本地下载引擎…</string>
     <string name="notification_complete">已保存 %1$s</string>
     <string name="notification_failed">下载失败</string>

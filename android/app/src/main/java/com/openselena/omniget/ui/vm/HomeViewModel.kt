@@ -17,6 +17,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,8 +36,6 @@ data class HomeUiState(
 
 sealed interface HomeEvent {
     data object AddedToQueue : HomeEvent
-    data object ClipboardEmpty : HomeEvent
-    data class Message(val text: String) : HomeEvent
 }
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -53,14 +53,26 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val state = _state.asStateFlow()
     val events = _events.receiveAsFlow()
 
+    init {
+        viewModelScope.launch {
+            app.settings.settings
+                .map { it.defaultMode to it.defaultQuality }
+                .distinctUntilChanged()
+                .collect { (mode, quality) ->
+                    _state.update { it.copy(mode = mode, quality = quality) }
+                }
+        }
+    }
+
     fun onUrlChanged(raw: String) {
-        val normalized = PlatformDetector.normalizeUrl(raw)
+        val extractedUrl = PlatformDetector.extractFirstUrl(raw)
+        val normalized = PlatformDetector.normalizeUrl(extractedUrl ?: raw)
         val valid = PlatformDetector.isValidUrl(normalized)
         inspectJob?.cancel()
         DownloadEngine.cancelPreview()
         _state.update {
             it.copy(
-                url = raw,
+                url = extractedUrl ?: raw,
                 platform = if (valid) PlatformDetector.detect(normalized) else it.platform,
                 preview = null,
                 isAnalyzing = false,
@@ -114,23 +126,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(quality = quality) }
     }
 
-    fun download() {
+    fun download(mode: DownloadMode, quality: QualityPreset) {
         val state = _state.value
         val preview = state.preview ?: return
-        val normalized = PlatformDetector.normalizeUrl(state.url)
-        if (normalized != preview.url) return
 
-        val platform = PlatformDetector.detect(normalized)
+        val platform = PlatformDetector.detect(preview.url)
         app.downloads.enqueue(
             DownloadTask(
-                url = normalized,
+                url = preview.url,
                 title = preview.title,
                 platform = platform.id,
                 uploader = preview.uploader,
                 thumbnailUrl = preview.thumbnailUrl,
                 durationSeconds = preview.durationSeconds,
-                mode = state.mode,
-                quality = state.quality,
+                mode = mode,
+                quality = quality,
             ),
         )
         _state.update {
@@ -140,13 +150,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 error = null,
                 isAnalyzing = false,
                 isValidUrl = false,
+                mode = mode,
+                quality = quality,
             )
         }
         _events.trySend(HomeEvent.AddedToQueue)
-    }
-
-    fun clipboardEmpty() {
-        _events.trySend(HomeEvent.ClipboardEmpty)
     }
 
     fun clear() {
