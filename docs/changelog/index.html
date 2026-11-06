@@ -83,7 +83,7 @@
 
       --text: #171717;
       --text-muted: #666666;
-      --text-subtle: #888888;
+      --text-subtle: #6e6e6e;
       --text-inverse: #ffffff;
 
       --primary: #171717;
@@ -91,7 +91,7 @@
       --primary-light: #f4f4f5;
       --primary-border: #171717;
 
-      --link: #0070f3;
+      --link: #005fc7;
       --link-hover: #3291ff;
       --success: #50e3c2;
 
@@ -132,7 +132,7 @@
 
       --text: #ededed;
       --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
+      --text-subtle: #8b8b94;
       --text-inverse: #000000;
 
       --primary: #ededed;
@@ -879,7 +879,7 @@
     }
 
     .tok-c {
-      color: #737373;
+      color: #8a8a8a;
     }
 
     /* ---------- Prev / next pagination ---------- */
@@ -1415,7 +1415,7 @@
           <li>
             <a href="../courses/" class="sidebar-link">
               <span>36 Course Platforms</span>
-              <span class="sidebar-tag">v0.14.0</span>
+              <span class="sidebar-tag">v1.0.0</span>
             </a>
           </li>
         </ul>
@@ -1499,15 +1499,83 @@
       
       <h1 class="doc-h1" id="changelog">Release Notes &amp; Changelog</h1>
       <p class="doc-lead">
-        Release notes, feature changes, and system patches for OmniGet. All desktop releases are signed, reproducible, and published with SHA-256 binary validation.
+        Release notes, feature changes, and system patches for OmniGet. Desktop and Android releases are signed and published with SHA-256 binary validation.
       </p>
+
+      <!-- v1.0.0 Release -->
+      <article class="release-box" id="v1-0-0">
+        <div class="release-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="release-tag-pill">v1.0.0 Stable</span>
+              <span class="release-date">Released November 2026</span>
+            </div>
+            <h2 class="release-title">小黑下载 for Android — Native Local-First Media Client</h2>
+          </div>
+          <a href="https://github.com/Builder0615/omniget/releases/tag/v1.0.0" target="_blank" rel="noopener" class="subtab-item" style="border: 1px solid var(--border); text-decoration: none;">
+            <span>GitHub Release</span>
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+
+        <div class="release-section">
+          <h3 class="release-section-title">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Native Android Client
+          </h3>
+          <ul class="release-list">
+            <li>Introduced 小黑下载, a native Jetpack Compose Android client with link resolution and downloading performed entirely on the device.</li>
+            <li>Bundled yt-dlp and FFmpeg engines support direct media URLs and the 1,800+ extractor sources provided by yt-dlp, with no remote resolver backend.</li>
+            <li>Added video/audio download modes, available quality selection, cookie-file import, playlists, subtitles, persistent queue state, and foreground progress notifications.</li>
+            <li>Completed downloads can be played, opened, shared, paused, resumed, retried, or cancelled; clearing history now requires an explicit second confirmation.</li>
+          </ul>
+        </div>
+
+        <div class="release-section">
+          <h3 class="release-section-title">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
+            Media Preview &amp; Playback
+          </h3>
+          <ul class="release-list">
+            <li>Added cover-first previews for resolved media, including title, creator, duration, platform badge, and available qualities.</li>
+            <li>Delivered inline playback with seek, duration, playback-speed controls, and a dedicated immersive fullscreen player activity.</li>
+            <li>Kept video thumbnails visible across preview, player, download, and history surfaces instead of showing a blank placeholder.</li>
+          </ul>
+        </div>
+
+        <div class="release-section">
+          <h3 class="release-section-title">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+            Xiaohei Mascot &amp; Paper Interface
+          </h3>
+          <ul class="release-list">
+            <li>Created the 小黑 app icon and a four-state black-cat Lottie mascot: sleeping while idle, running during analysis, celebrating after completion, then returning to sleep.</li>
+            <li>Reworked Home into a focused link-and-mascot view, added the sliding tab indicator, responsive landscape rail/split layout, and consistent edge spacing.</li>
+            <li>Applied the warm paper, terracotta accent, raised/recessed surface, and soft press animation system across buttons, sheets, inputs, and download filters.</li>
+            <li>Replaced generic icon-font usage with SVG controls and original YouTube, Bilibili, TikTok, Instagram, Reddit, Vimeo, and X brand marks.</li>
+          </ul>
+        </div>
+
+        <div class="release-section">
+          <h3 class="release-section-title">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Compatibility &amp; Reliability
+          </h3>
+          <ul class="release-list">
+            <li>Supports Android 8.0 and newer on arm64-v8a and x86_64, including the Android 16 KB page-size compatibility path for bundled FFmpeg WebP libraries.</li>
+            <li>Hardened URL normalization and known-platform detection, including share text, mobile domains, short links, and lookalike-domain rejection.</li>
+            <li>Fixed capsule input corners, narrow-screen button margins, bottom-sheet spacing, landscape composition, fullscreen behavior, and the tab-transition jump.</li>
+            <li>Published a release-signed APK with SHA-256 verification. DRM-protected and paywalled content is not bypassed; downloads use only access available to the user's own session.</li>
+          </ul>
+        </div>
+      </article>
 
             <!-- v0.14.0 Release -->
       <article class="release-box" id="v0-14-0">
         <div class="release-header">
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="release-tag-pill">v0.14.0 Stable</span>
+              <span class="sidebar-tag">v0.14.0</span>
               <span class="release-date">Released October 2026</span>
             </div>
             <h2 class="release-title">Offline Study Module, BitTorrent Telemetry &amp; Course Platform Upgrades</h2>
@@ -2048,7 +2116,8 @@
         <span>On this page</span>
       </div>
       <ul class="toc-list" id="tocList">
-        <li><a href="#v0-14-0" class="toc-link">v0.14.0 (Latest Stable)</a></li>
+        <li><a href="#v1-0-0" class="toc-link">v1.0.0 (Latest Stable)</a></li>
+        <li><a href="#v0-14-0" class="toc-link">v0.14.0</a></li>
         <li><a href="#v0-13-0" class="toc-link">v0.13.0</a></li>
         <li><a href="#v0-12-2" class="toc-link">v0.12.2</a></li>
         <li><a href="#v0-12-1" class="toc-link">v0.12.1</a></li>
@@ -2114,7 +2183,7 @@
         </li>
         <li class="search-result-item" onclick="location.href='../changelog/'">
           <span class="search-result-title">Release Notes &amp; Changelog</span>
-          <span class="search-result-desc">Version v0.14.0 updates, Offline Study module, BitTorrent speed &amp; remaining telemetry, Skool &amp; Udemy fixes</span>
+          <span class="search-result-desc">Version v1.0.0 introduces 小黑下载 for Android: local parsing, download queue, media player, and Xiaohei mascot</span>
         </li>
       </ul>
     </div>

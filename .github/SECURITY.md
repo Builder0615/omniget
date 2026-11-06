@@ -6,8 +6,8 @@ Only the latest minor release receives active security updates and patches.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.14.x  | ✅        |
-| < 0.14  | ❌        |
+| 1.0.x  | ✅        |
+| < 1.0  | ❌        |
 
 ## Reporting a Vulnerability
 

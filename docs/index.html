@@ -83,7 +83,7 @@
 
       --text: #171717;
       --text-muted: #666666;
-      --text-subtle: #888888;
+      --text-subtle: #6e6e6e;
       --text-inverse: #ffffff;
 
       --primary: #171717;
@@ -91,7 +91,7 @@
       --primary-light: #f4f4f5;
       --primary-border: #171717;
 
-      --link: #0070f3;
+      --link: #005fc7;
       --link-hover: #3291ff;
       --success: #50e3c2;
 
@@ -132,7 +132,7 @@
 
       --text: #ededed;
       --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
+      --text-subtle: #8b8b94;
       --text-inverse: #000000;
 
       --primary: #ededed;
@@ -184,6 +184,10 @@
 
     img {
       max-width: 100%;
+    }
+
+    small {
+      font-size: 12px;
     }
 
     :focus-visible {
@@ -879,7 +883,7 @@
     }
 
     .tok-c {
-      color: #737373;
+      color: #8a8a8a;
     }
 
     /* ---------- Prev / next pagination ---------- */
@@ -1415,7 +1419,7 @@
           <li>
             <a href="./courses/" class="sidebar-link">
               <span>36 Course Platforms</span>
-              <span class="sidebar-tag">v0.14.0</span>
+              <span class="sidebar-tag">v1.0.0</span>
             </a>
           </li>
         </ul>
@@ -1532,8 +1536,8 @@
   <path d="M12 16v-4" />
   <path d="M12 8h.01" /></svg>
         <div>
-          <strong>Version 0.14.0 Release Update:</strong>
-          Introduced Offline Study module with SQLite tracking, eliminated BitTorrent 99% stall with real-time speed metrics, upgraded Skool &amp; Udemy extractors, and localized Open Nami.
+          <strong>Version 1.0.0 Release Update:</strong>
+          Introduced 小黑下载 for Android with fully local link parsing, a persistent download queue, cover-first media playback, immersive fullscreen controls, and the Xiaohei paper-style interface.
         </div>
       </div>
 
@@ -1838,7 +1842,7 @@
             <tr>
               <td><strong>GitHub API</strong><br /><code>api.github.com/repos/OpenSelena/...</code></td>
               <td>Check for newer releases and security patches.</td>
-              <td>Standard HTTP User-Agent and client architecture (e.g. <code>OmniGet/0.14.0 x86_64</code>).</td>
+              <td>Standard HTTP User-Agent and client architecture (e.g. <code>OmniGet/1.0.0 x86_64</code>).</td>
               <td>On startup (can be disabled in Settings).</td>
             </tr>
             <tr>
@@ -1951,8 +1955,51 @@
       <!-- SECTION 10: CHANGELOG & RELEASES -->
       <h2 class="doc-h2" id="changelog">10. Official Release Notes &amp; Changelog</h2>
       <p class="doc-p">
-        Track every update and bugfix shipped in OmniGet. OmniGet follows Semantic Versioning and publishes signed artifacts with SHA-256 checksums for every desktop release.
+        Track every update and bugfix shipped in OmniGet. OmniGet follows Semantic Versioning and publishes signed artifacts with SHA-256 checksums for every desktop and Android release.
       </p>
+
+      <!-- v1.0.0 Release -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="sidebar-tag" style="background: var(--primary); color: var(--text-inverse); font-weight: 600; padding: 3px 8px; border-radius: 6px;">v1.0.0 Stable</span>
+              <span style="font-size: 13px; color: var(--text-subtle);">Released November 2026</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text); margin-top: 6px;">小黑下载 for Android — Native Local-First Media Client</h3>
+          </div>
+          <a href="https://github.com/Builder0615/omniget/releases/tag/v1.0.0" target="_blank" rel="noopener" class="subtab-item" style="border: 1px solid var(--border); text-decoration: none;">
+            <span>Download APK</span>
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
+
+        <div style="display: grid; gap: 18px;">
+          <div>
+            <h4 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              Native Android Client
+            </h4>
+            <ul style="margin-left: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.6; display: grid; gap: 4px;">
+              <li>On-device yt-dlp and FFmpeg parsing, direct media URLs, and 1,800+ extractor sources with no resolver backend.</li>
+              <li>Video/audio quality choices, cookie import, persistent queue, progress notifications, and safe clear-history confirmation.</li>
+              <li>Cover-first previews, inline playback, immersive fullscreen, seeking, duration, quality selection, and playback speed.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 style="font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+              Xiaohei Interface &amp; Compatibility
+            </h4>
+            <ul style="margin-left: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.6; display: grid; gap: 4px;">
+              <li>Sleeping, running, celebration, and error mascot states built as Lottie animations.</li>
+              <li>Paper-style controls, sliding navigation, SVG brand icons, responsive landscape rail, and balanced edge spacing.</li>
+              <li>Android 8.0+, bundled arm64-v8a/x86_64 engines, 16 KB page compatibility, and a signed APK with SHA-256 verification.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
             <!-- v0.14.0 Release -->
       <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -2410,7 +2457,7 @@
         </li>
         <li class="search-result-item" onclick="location.href='./changelog/'">
           <span class="search-result-title">Release Notes &amp; Changelog</span>
-          <span class="search-result-desc">Version v0.14.0 updates, Offline Study module, BitTorrent speed &amp; remaining telemetry, Skool &amp; Udemy fixes</span>
+          <span class="search-result-desc">Version v1.0.0 introduces 小黑下载 for Android: local parsing, download queue, media player, and Xiaohei mascot</span>
         </li>
       </ul>
     </div>

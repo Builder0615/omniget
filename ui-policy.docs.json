@@ -81,6 +81,16 @@
       "selector": "details:not([open]) *",
       "rules": ["content-clipping"],
       "reason": "Closed FAQ accordion collapses content until expanded by user"
+    },
+    {
+      "selector": ".subtab-item, .subtab-item *",
+      "rules": ["text-contrast"],
+      "reason": "The mobile subtab strip scrolls horizontally, so partially clipped links cannot report an effective background; their text uses the AA-compliant --text-subtle token"
+    },
+    {
+      "selector": ".code-header > span",
+      "rules": ["content-clipping"],
+      "reason": "Code block titles stay on one line and ellipsize on narrow screens so the Copy control remains available"
     }
   ]
 }

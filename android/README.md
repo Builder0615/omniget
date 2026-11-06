@@ -97,6 +97,25 @@ Install on a connected device:
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+## Release Build
+
+Release signing is opt-in through environment variables so credentials and the
+keystore never enter Git:
+
+```bash
+export XIAOHEI_RELEASE_STORE_FILE="/absolute/path/to/xiaohei-release.jks"
+export XIAOHEI_RELEASE_STORE_PASSWORD="..."
+export XIAOHEI_RELEASE_KEY_ALIAS="xiaohei"
+export XIAOHEI_RELEASE_KEY_PASSWORD="..."
+
+cd android
+./gradlew :app:assembleRelease
+```
+
+The signed APK is written to
+`android/app/build/outputs/apk/release/app-release.apk`. If the variables are
+absent, the release variant remains unsigned.
+
 ## 16 KB Page Compatibility
 
 The app is compatible with Android's 16 KB page-size requirement. The

@@ -9,12 +9,17 @@ android {
     namespace = "com.openselena.omniget"
     compileSdk = 35
 
+    val releaseKeystorePath = System.getenv("XIAOHEI_RELEASE_STORE_FILE")
+    val releaseKeystorePassword = System.getenv("XIAOHEI_RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("XIAOHEI_RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("XIAOHEI_RELEASE_KEY_PASSWORD")
+
     defaultConfig {
         applicationId = "com.openselena.omniget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-android.1"
+        versionCode = 10000
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -48,8 +53,25 @@ android {
         jniLibs.useLegacyPackaging = true
     }
 
+    signingConfigs {
+        if (
+            !releaseKeystorePath.isNullOrBlank() &&
+            !releaseKeystorePassword.isNullOrBlank() &&
+            !releaseKeyAlias.isNullOrBlank() &&
+            !releaseKeyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
